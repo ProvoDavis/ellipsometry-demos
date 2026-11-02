@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SiO₂-on-Si Reflection</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap">
+<style>
+/* Layout: optics-bench workbench. A sticky control rail with live numbers on the left; equations, maps, line cuts and the trajectory stack on the right. */
+:root {
+  --bg: #f2f4f6;
+  --panel: #ffffff;
+  --ink: #131e27;
+  --muted: #56636f;
+  --line: #d5dce3;
+  --grid: #e7ebef;
+  --accent: #3344bd;
+  --p: #3344bd;
+  --s: #bf5420;
+  --font-math: "STIX Two Text", "Cambria Math", "Times New Roman", serif;
+  --font-ui: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1216; --panel: #141b21; --ink: #e3e9ee; --muted: #94a1ac; --line: #27313a; --grid: #1c242b;
+    --accent: #9ca8ff; --p: #9ca8ff; --s: #f19a62; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1216; --panel: #141b21; --ink: #e3e9ee; --muted: #94a1ac; --line: #27313a; --grid: #1c242b;
+  --accent: #9ca8ff; --p: #9ca8ff; --s: #f19a62; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.5; }
+.wrap {
+  max-width: 1320px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header { display: grid; gap: 6px; margin-bottom: 22px; max-width: 74ch; }
+.eyebrow { font-family: var(--font-data); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-math); font-weight: 600; font-size: clamp(28px, 4vw, 38px); line-height: 1.1; margin: 0; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); }
+
+.layout { display: grid; grid-template-columns: 324px minmax(0, 1fr); gap: 22px; align-items: start; }
+aside {
+  position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px);
+  display: grid; gap: 16px; max-height: calc(100vh - 32px); overflow: auto;
+}
+main { display: grid; gap: 22px; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+h2 { font-size: 12.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+h3 { font-family: var(--font-math); font-size: 19px; font-weight: 400; margin: 0 0 6px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+h3 .tag { font-family: var(--font-ui); font-size: 12.5px; color: var(--muted); }
+.note { font-size: 14px; color: var(--muted); margin: 12px 0 0; max-width: 76ch; }
+.m { font-family: var(--font-math); font-size: 1.08em; white-space: nowrap; }
+.m sup, .m sub, .eq sup, .eq sub { font-size: .68em; line-height: 0; }
+
+/* controls */
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 3px; }
+.seg button { font: inherit; font-size: 14px; border: 0; background: transparent; color: var(--muted); padding: 7px 8px; border-radius: 6px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, .14); }
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.controls { display: grid; gap: 18px; }
+.ctl { display: grid; gap: 6px; }
+.ctl label { font-size: 14px; }
+.ctl .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
+.num { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-data); font-size: 13px; color: var(--muted); }
+.num input { width: 76px; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; text-align: right; font-variant-numeric: tabular-nums; }
+.materials { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.6; }
+
+/* live values */
+table.vals { width: 100%; border-collapse: collapse; font-family: var(--font-data); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+table.vals th, table.vals td { padding: 4px 0; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+table.vals td + td { padding-left: 10px; }
+table.vals tbody th { text-align: left; font-family: var(--font-math); font-size: 15px; font-weight: 400; padding-right: 8px; }
+table.vals thead th { font-family: var(--font-ui); font-size: 12.5px; font-weight: 600; }
+.pc { color: var(--p); } .sc { color: var(--s); }
+dl.kv { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 14px 0 0; font-size: 14px; align-items: baseline; }
+dl.kv dt { color: var(--muted); }
+dl.kv dd { margin: 0; text-align: right; font-family: var(--font-data); font-size: 13px; font-variant-numeric: tabular-nums; }
+dl.kv .key dt, dl.kv .key dd { color: var(--ink); font-weight: 500; }
+dl.kv .key { display: contents; }
+dl.kv .key dd { font-size: 15px; }
+
+/* equations */
+.eqs { display: grid; gap: 14px; overflow-x: auto; padding-bottom: 4px; }
+.eq { display: flex; align-items: center; gap: 10px; font-family: var(--font-math); font-size: 21px; white-space: nowrap; min-width: max-content; }
+.eq .no { margin-left: auto; padding-left: 28px; font-family: var(--font-data); font-size: 12px; color: var(--muted); }
+.frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; }
+.frac > span { padding: 1px 6px; }
+.frac > span + span { border-top: 1.2px solid currentColor; }
+.ss { display: inline-flex; flex-direction: column; font-size: .62em; line-height: 1.1; vertical-align: .72em; margin-left: .05em; margin-right: .08em; text-align: left; }
+details { margin-top: 14px; border-top: 1px solid var(--grid); padding-top: 10px; }
+summary { cursor: pointer; font-size: 14px; color: var(--muted); }
+details .eqs { margin-top: 12px; }
+details .eq { font-size: 18px; }
+details p { font-size: 14px; color: var(--muted); max-width: 76ch; margin: 12px 0 0; }
+
+/* plots */
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+canvas { display: block; width: 100%; max-width: 100%; }
+.map canvas { aspect-ratio: 1 / 1; cursor: crosshair; touch-action: manipulation; }
+.cut canvas { aspect-ratio: 16 / 8.6; }
+.cut canvas + canvas { margin-top: 4px; }
+.legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); margin: 0 0 8px; flex-wrap: wrap; }
+.legend .sw { display: inline-block; width: 18px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.traj-wrap { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; }
+.traj { flex: 1 1 340px; max-width: 520px; min-width: 0; }
+.traj canvas { aspect-ratio: 1 / 1; }
+.traj-wrap .note { flex: 1 1 260px; margin: 0; }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  aside { position: static; max-height: none; overflow: visible; }
+}
+@media (max-width: 640px) { .two { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Thin-film ellipsometry · Eqs. 2.26a–b</span>
+    <h1>Reflection from SiO₂ on Si</h1>
+    <p>Total reflection coefficients <span class="m"><i>R</i><sup>p</sup></span> and <span class="m"><i>R</i><sup>s</sup></span> for a transparent oxide film on a silicon wafer. Set the film thickness <span class="m"><i>d</i></span> and the angle of incidence <span class="m"><i>φ</i></span> with the sliders, or click anywhere on a map.</p>
+  </header>
+
+  <div class="layout">
+    <aside>
+      <section class="panel controls" aria-label="Controls">
+        <div>
+          <h2>Show</h2>
+          <div class="seg" role="group" aria-label="Quantities shown">
+            <button type="button" id="mode-R" aria-pressed="true">|R|² and phase</button>
+            <button type="button" id="mode-B" aria-pressed="false">ψ and Δ</button>
+          </div>
+        </div>
+        <div class="ctl">
+          <label for="d">Film thickness <span class="m"><i>d</i></span></label>
+          <div class="row">
+            <input type="range" id="d" min="0" max="1000" step="0.5" value="100">
+            <span class="num"><input type="number" id="dNum" min="0" max="1000" step="0.1" value="100" aria-label="Film thickness in nanometres">nm</span>
+          </div>
+        </div>
+        <div class="ctl">
+          <label for="phi">Angle of incidence <span class="m"><i>φ</i></span><span class="m"><sub>1</sub></span></label>
+          <div class="row">
+            <input type="range" id="phi" min="0" max="89.9" step="0.1" value="70">
+            <span class="num"><input type="number" id="phiNum" min="0" max="89.9" step="0.1" value="70" aria-label="Angle of incidence in degrees">°</span>
+          </div>
+        </div>
+        <p class="materials"><span class="m"><i>λ</i></span> = 632.8 nm · air <span class="m"><i>N</i><sub>1</sub></span> = 1<br>SiO₂ <span class="m"><i>N</i><sub>2</sub></span> = 1.457 · Si <span class="m"><i>Ñ</i><sub>3</sub></span> = 3.882 − 0.019<i>i</i></p>
+      </section>
+
+      <section class="panel" aria-label="Values at the current point">
+        <h2>At this point</h2>
+        <table class="vals">
+          <thead><tr><th></th><th class="pc">p</th><th class="sc">s</th></tr></thead>
+          <tbody>
+            <tr><th><i>r</i><sub>12</sub></th><td id="v-r12p"></td><td id="v-r12s"></td></tr>
+            <tr><th><i>r</i><sub>23</sub></th><td id="v-r23p"></td><td id="v-r23s"></td></tr>
+            <tr><th><i>R</i></th><td id="v-Rp"></td><td id="v-Rs"></td></tr>
+            <tr><th>|<i>R</i>|²</th><td id="v-Rp2"></td><td id="v-Rs2"></td></tr>
+            <tr><th>arg <i>R</i></th><td id="v-argp"></td><td id="v-args"></td></tr>
+          </tbody>
+        </table>
+        <dl class="kv">
+          <div class="key"><dt><span class="m"><i>ψ</i></span></dt><dd id="v-psi"></dd></div>
+          <div class="key"><dt><span class="m">Δ</span></dt><dd id="v-delta"></dd></div>
+          <dt>Angle in film <span class="m"><i>φ</i><sub>2</sub></span></dt><dd id="v-phi2"></dd>
+          <dt>Film phase <span class="m"><i>β</i></span></dt><dd id="v-beta"></dd>
+          <dt>Film period <span class="m"><i>D</i></span></dt><dd id="v-D"></dd>
+          <dt><span class="m"><i>d</i> / <i>D</i></span></dt><dd id="v-dD"></dd>
+        </dl>
+      </section>
+    </aside>
+
+    <main>
+      <section class="panel" aria-labelledby="eq-h">
+        <h2 id="eq-h">Equations plotted</h2>
+        <div class="eqs">
+          <div class="eq">
+            <span><i>R</i><sup>p</sup> =</span>
+            <span class="frac">
+              <span><i>r</i><span class="ss"><span>p</span><span>12</span></span> + <i>r</i><span class="ss"><span>p</span><span>23</span></span><i>e</i><sup>−<i>i</i>2<i>β</i></sup></span>
+              <span>1 + <i>r</i><span class="ss"><span>p</span><span>12</span></span><i>r</i><span class="ss"><span>p</span><span>23</span></span><i>e</i><sup>−<i>i</i>2<i>β</i></sup></span>
+            </span>
+            <span class="no">(2.26a)</span>
+          </div>
+          <div class="eq">
+            <span><i>R</i><sup>s</sup> =</span>
+            <span class="frac">
+              <span><i>r</i><span class="ss"><span>s</span><span>12</span></span> + <i>r</i><span class="ss"><span>s</span><span>23</span></span><i>e</i><sup>−<i>i</i>2<i>β</i></sup></span>
+              <span>1 + <i>r</i><span class="ss"><span>s</span><span>12</span></span><i>r</i><span class="ss"><span>s</span><span>23</span></span><i>e</i><sup>−<i>i</i>2<i>β</i></sup></span>
+            </span>
+            <span class="no">(2.26b)</span>
+          </div>
+          <div class="eq">
+            <span><i>β</i> = 2π</span>
+            <span class="frac"><span><i>d</i></span><span><i>λ</i></span></span>
+            <span><i>Ñ</i><sub>2</sub> cos <i>φ</i><sub>2</sub></span>
+          </div>
+        </div>
+        <details>
+          <summary>Fresnel coefficients, Snell's law and sign conventions</summary>
+          <div class="eqs">
+            <div class="eq"><span><i>N</i><sub>1</sub> sin <i>φ</i><sub>1</sub> = <i>Ñ</i><sub>2</sub> sin <i>φ</i><sub>2</sub> = <i>Ñ</i><sub>3</sub> sin <i>φ</i><sub>3</sub></span></div>
+            <div class="eq">
+              <span><i>r</i><span class="ss"><span>p</span><span>12</span></span> =</span>
+              <span class="frac"><span><i>Ñ</i><sub>2</sub> cos <i>φ</i><sub>1</sub> − <i>Ñ</i><sub>1</sub> cos <i>φ</i><sub>2</sub></span><span><i>Ñ</i><sub>2</sub> cos <i>φ</i><sub>1</sub> + <i>Ñ</i><sub>1</sub> cos <i>φ</i><sub>2</sub></span></span>
+              <span style="width:18px"></span>
+              <span><i>r</i><span class="ss"><span>s</span><span>12</span></span> =</span>
+              <span class="frac"><span><i>Ñ</i><sub>1</sub> cos <i>φ</i><sub>1</sub> − <i>Ñ</i><sub>2</sub> cos <i>φ</i><sub>2</sub></span><span><i>Ñ</i><sub>1</sub> cos <i>φ</i><sub>1</sub> + <i>Ñ</i><sub>2</sub> cos <i>φ</i><sub>2</sub></span></span>
+            </div>
+            <div class="eq"><span><i>ρ</i> = <i>R</i><sup>p</sup> / <i>R</i><sup>s</sup> = tan <i>ψ</i> <i>e</i><sup><i>i</i>Δ</sup></span></div>
+          </div>
+          <p>The film–substrate coefficients <span class="m"><i>r</i><sub>23</sub></span> use the same forms with 1 → 2 and 2 → 3. Complex indices are written <span class="m"><i>Ñ</i> = <i>n</i> − <i>ik</i></span>. With these signs <span class="m"><i>R</i><sup>p</sup> = −<i>R</i><sup>s</sup></span> at normal incidence, so Δ = 180° there, and for bare silicon Δ stays near 180° below its Brewster angle. SiO₂ does not absorb at 632.8 nm, so <span class="m"><i>β</i></span> is real and every curve repeats after one film period <span class="m"><i>D</i> = <i>λ</i> / (2<i>N</i><sub>2</sub> cos <i>φ</i><sub>2</sub>)</span>.</p>
+        </details>
+      </section>
+
+      <section class="panel" aria-labelledby="maps-h">
+        <h2 id="maps-h">Over thickness and angle</h2>
+        <div class="two">
+          <div class="map">
+            <h3 id="map-a-title"></h3>
+            <canvas id="map-a" role="img" aria-label="Map over film thickness and angle of incidence"></canvas>
+          </div>
+          <div class="map">
+            <h3 id="map-b-title"></h3>
+            <canvas id="map-b" role="img" aria-label="Map over film thickness and angle of incidence"></canvas>
+          </div>
+        </div>
+        <p class="note" id="maps-note"></p>
+      </section>
+
+      <section class="panel" aria-labelledby="cuts-h">
+        <h2 id="cuts-h">Line cuts through the current point</h2>
+        <div class="legend" id="legend">
+          <span><i class="sw" style="background: var(--p)"></i>p (<span class="m"><i>R</i><sup>p</sup></span>)</span>
+          <span><i class="sw" style="background: var(--s)"></i>s (<span class="m"><i>R</i><sup>s</sup></span>)</span>
+        </div>
+        <div class="two">
+          <div class="cut">
+            <h3 id="cut-d-title"></h3>
+            <canvas id="cut-d-top" role="img" aria-label="Line cut versus film thickness"></canvas>
+            <canvas id="cut-d-bot" role="img" aria-label="Line cut versus film thickness"></canvas>
+          </div>
+          <div class="cut">
+            <h3 id="cut-phi-title"></h3>
+            <canvas id="cut-phi-top" role="img" aria-label="Line cut versus angle of incidence"></canvas>
+            <canvas id="cut-phi-bot" role="img" aria-label="Line cut versus angle of incidence"></canvas>
+          </div>
+        </div>
+        <p class="note">Dashed lines mark the Brewster angles of bare SiO₂ (55.5°) and bare Si (75.6°). The grey vertical line is the current setting.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="traj-h">
+        <h2 id="traj-h"></h2>
+        <div class="traj-wrap">
+          <div class="traj"><canvas id="traj" role="img" aria-label="Trajectory as the film grows through one period"></canvas></div>
+          <p class="note" id="traj-note"></p>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script id="physics">
+const Phys = (() => {
+  const LAMBDA = 632.8;                 // nm, HeNe line
+  const N1 = 1;                         // ambient: air
+  const N2 = 1.457;                     // film: SiO2
+  const N3 = { re: 3.882, im: -0.019 }; // substrate: Si, Ñ = n − ik
+  const D_MAX = 1000, PHI_MAX = 90;
+  const DEG = Math.PI / 180;
+
+  const add = (a, b) => ({ re: a.re + b.re, im: a.im + b.im });
+  const sub = (a, b) => ({ re: a.re - b.re, im: a.im - b.im });
+  const mul = (a, b) => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re });
+  const div = (a, b) => {
+    const q = b.re * b.re + b.im * b.im;
+    return { re: (a.re * b.re + a.im * b.im) / q, im: (a.im * b.re - a.re * b.im) / q };
+  };
+  const sqrt = a => {
+    const r = Math.hypot(a.re, a.im);
+    const re = Math.sqrt((r + a.re) / 2), im = Math.sqrt(Math.max(0, (r - a.re) / 2));
+    return { re, im: a.im < 0 ? -im : im };
+  };
+  const abs = a => Math.hypot(a.re, a.im);
+  const arg = a => Math.atan2(a.im, a.re);
+  const real = x => ({ re: x, im: 0 });
+
+  // Everything that depends only on the angle of incidence
+  function interfaces(phiDeg) {
+    const s = N1 * Math.sin(phiDeg * DEG);            // N1 sin φ1, the same in every layer (Snell)
+    const cos1 = Math.cos(phiDeg * DEG);
+    const sin2 = s / N2, cos2 = Math.sqrt(1 - sin2 * sin2);
+    const q3 = sqrt(sub(mul(N3, N3), real(s * s)));   // Ñ3 cos φ3
+    const cos3 = div(q3, N3);
+    const r12p = (N2 * cos1 - N1 * cos2) / (N2 * cos1 + N1 * cos2);
+    const r12s = (N1 * cos1 - N2 * cos2) / (N1 * cos1 + N2 * cos2);
+    const a = mul(N3, real(cos2)), b = mul(real(N2), cos3);
+    const r23p = div(sub(a, b), add(a, b));
+    const c = real(N2 * cos2);
+    const r23s = div(sub(c, q3), add(c, q3));
+    return { phi: phiDeg, phi2: Math.asin(sin2) / DEG, cos2, r12p, r12s, r23p, r23s, period: LAMBDA / (2 * N2 * cos2) };
+  }
+
+  // Eq. 2.26: R = (r12 + r23 e^{-i2β}) / (1 + r12 r23 e^{-i2β}); r12 is real here
+  function total(r12, r23, e) {
+    const t = mul(r23, e);
+    return div({ re: r12 + t.re, im: t.im }, { re: 1 + r12 * t.re, im: r12 * t.im });
+  }
+
+  function film(I, d) {
+    const beta = 2 * Math.PI * (d / LAMBDA) * N2 * I.cos2;   // real: SiO2 does not absorb at 632.8 nm
+    const e = { re: Math.cos(2 * beta), im: -Math.sin(2 * beta) };
+    const Rp = total(I.r12p, I.r23p, e), Rs = total(I.r12s, I.r23s, e);
+    const mp = abs(Rp), ms = abs(Rs);
+    let delta = arg(div(Rp, Rs)) / DEG;
+    if (delta < 0) delta += 360;
+    return {
+      d, beta, Rp, Rs, Rp2: mp * mp, Rs2: ms * ms,
+      phaseP: arg(Rp) / DEG, phaseS: arg(Rs) / DEG,
+      psi: Math.atan2(mp, ms) / DEG, delta,
+    };
+  }
+
+  const brewster = { film: Math.atan(N2 / N1) / DEG, substrate: Math.atan(N3.re / N1) / DEG };
+  return { LAMBDA, N1, N2, N3, D_MAX, PHI_MAX, interfaces, film, brewster };
+})();
+</script>
+
+<script>
+(() => {
+  "use strict";
+  const { D_MAX, PHI_MAX, interfaces, film, brewster } = Phys;
+  const $ = id => document.getElementById(id);
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const state = { d: 100, phi: 70, mode: "R", cur: null, I: null };
+
+  // ---- formatting ----
+  const sgn = (v, n) => { const s = Math.abs(v).toFixed(n); return (v < 0 && +s !== 0 ? "−" : "") + s; };
+  const fmtC = z => `${sgn(z.re, 3)} ${z.im < 0 ? "−" : "+"} ${Math.abs(z.im).toFixed(3)}i`;
+  const fmtDeg = (v, n = 1) => sgn(v, n) + "°";
+
+  // ---- theme ----
+  const T = {};
+  function readTheme() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ["ink", "muted", "line", "grid", "panel", "p", "s", "accent"]) T[k] = cs.getPropertyValue("--" + k).trim();
+    T.data = cs.getPropertyValue("--font-data").trim();
+    T.ui = cs.getPropertyValue("--font-ui").trim();
+  }
+
+  // ---- colour maps (theme-independent) ----
+  const VIRIDIS = ["#440154", "#482475", "#414487", "#355f8d", "#2a788e", "#21918c", "#22a884", "#44bf70", "#7ad151", "#bddf26", "#fde725"];
+  const CYCLIC = ["#e6dfe6", "#a9bbd6", "#6a83c4", "#4a4aa3", "#2f1f55", "#4a1c45", "#8f3546", "#c4664c", "#dfa686", "#e6dfe6"];
+  const rgbOf = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  function makeLUT(stops) {
+    const rgb = stops.map(rgbOf), lut = new Uint8ClampedArray(256 * 3);
+    for (let i = 0; i < 256; i++) {
+      const t = i / 255 * (rgb.length - 1), k = Math.min(rgb.length - 2, Math.floor(t)), f = t - k;
+      for (let c = 0; c < 3; c++) lut[i * 3 + c] = rgb[k][c] + (rgb[k + 1][c] - rgb[k][c]) * f;
+    }
+    return lut;
+  }
+  const LUT = { seq: makeLUT(VIRIDIS), cyc: makeLUT(CYCLIC) };
+
+  const MAPS = {
+    Rp2: { lut: "seq", range: [0, 1], ticks: [0, .25, .5, .75, 1], fmt: v => String(v),
+      title: `<span class="m">|<i>R</i><sup>p</sup>|<sup>2</sup></span> <span class="tag">p reflectance</span>` },
+    Rs2: { lut: "seq", range: [0, 1], ticks: [0, .25, .5, .75, 1], fmt: v => String(v),
+      title: `<span class="m">|<i>R</i><sup>s</sup>|<sup>2</sup></span> <span class="tag">s reflectance</span>` },
+    psi: { lut: "seq", range: [0, 90], ticks: [0, 30, 60, 90], fmt: v => v + "°",
+      title: `<span class="m"><i>ψ</i></span> <span class="tag">tan ψ = |R<sup>p</sup>| / |R<sup>s</sup>|</span>` },
+    delta: { lut: "cyc", range: [0, 360], ticks: [0, 90, 180, 270, 360], fmt: v => v + "°",
+      title: `<span class="m">Δ</span> <span class="tag">arg R<sup>p</sup> − arg R<sup>s</sup></span>` },
+  };
+
+  // ---- map fields: computed once ----
+  const NX = 251, NY = 181;
+  const fields = { Rp2: new Float32Array(NX * NY), Rs2: new Float32Array(NX * NY), psi: new Float32Array(NX * NY), delta: new Float32Array(NX * NY) };
+  for (let j = 0; j < NY; j++) {
+    const I = interfaces(PHI_MAX * j / (NY - 1));
+    for (let i = 0; i < NX; i++) {
+      const f = film(I, D_MAX * i / (NX - 1)), k = (NY - 1 - j) * NX + i;
+      fields.Rp2[k] = f.Rp2; fields.Rs2[k] = f.Rs2; fields.psi[k] = f.psi; fields.delta[k] = f.delta;
+    }
+  }
+  const images = {};
+  function mapImage(key) {
+    if (images[key]) return images[key];
+    const m = MAPS[key], src = fields[key], lut = LUT[m.lut], [a, b] = m.range;
+    const cv = document.createElement("canvas"); cv.width = NX; cv.height = NY;
+    const ctx = cv.getContext("2d"), img = ctx.createImageData(NX, NY);
+    for (let k = 0; k < NX * NY; k++) {
+      const li = Math.round(clamp((src[k] - a) / (b - a), 0, 1) * 255) * 3;
+      img.data[k * 4] = lut[li]; img.data[k * 4 + 1] = lut[li + 1]; img.data[k * 4 + 2] = lut[li + 2]; img.data[k * 4 + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    return (images[key] = cv);
+  }
+
+  const BREW = [
+    { phi: brewster.film, label: `SiO₂ Brewster ${brewster.film.toFixed(1)}°`, short: "SiO₂", side: "left" },
+    { phi: brewster.substrate, label: `Si Brewster ${brewster.substrate.toFixed(1)}°`, short: "Si", side: "right" },
+  ];
+  const D_TICKS = [0, 200, 400, 600, 800, 1000];
+  const PHI_TICKS = [0, 15, 30, 45, 60, 75, 90];
+
+  // ---- drawing helpers ----
+  function setup(cv) {
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, r.width, r.height);
+    return { ctx, W: r.width, H: r.height };
+  }
+
+  function frame(ctx, box, fx, fy, o) {
+    ctx.save();
+    ctx.lineWidth = 1;
+    if (o.grid) {
+      ctx.strokeStyle = T.grid; ctx.beginPath();
+      for (const v of o.xt) { const x = Math.round(fx(v)) + .5; ctx.moveTo(x, box.y); ctx.lineTo(x, box.y + box.h); }
+      for (const v of o.yt) { const y = Math.round(fy(v)) + .5; ctx.moveTo(box.x, y); ctx.lineTo(box.x + box.w, y); }
+      ctx.stroke();
+    }
+    ctx.strokeStyle = T.line;
+    ctx.strokeRect(Math.round(box.x) + .5, Math.round(box.y) + .5, Math.round(box.w) - 1, Math.round(box.h) - 1);
+    ctx.fillStyle = T.muted; ctx.font = `11px ${T.data}`;
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (const v of o.xt) ctx.fillText(o.xf(v), fx(v), box.y + box.h + 5);
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (const v of o.yt) ctx.fillText(o.yf(v), box.x - 6, fy(v));
+    ctx.fillStyle = T.ink; ctx.font = `12px ${T.ui}`;
+    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(o.xl, box.x + box.w / 2, box.y + box.h + 32);
+    ctx.translate(14, box.y + box.h / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText(o.yl, 0, 0);
+    ctx.restore();
+  }
+
+  function clipTo(ctx, box) { ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip(); }
+
+  function dot(ctx, x, y, r, fill, ring) {
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI);
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = ring; ctx.stroke();
+  }
+
+  // ---- maps ----
+  function drawMap(cv, key) {
+    const { ctx, W, H } = setup(cv);
+    const m = MAPS[key];
+    const box = { x: 52, y: 8, w: W - 52 - 18, h: H - 8 - 80 };
+    cv._box = box;
+    const fx = d => box.x + d / D_MAX * box.w, fy = p => box.y + box.h - p / PHI_MAX * box.h;
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(mapImage(key), box.x, box.y, box.w, box.h);
+    frame(ctx, box, fx, fy, { grid: false, xt: D_TICKS, yt: PHI_TICKS, xf: v => String(v), yf: v => v + "°", xl: "Film thickness d (nm)", yl: "Angle of incidence φ" });
+
+    clipTo(ctx, box);
+    ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.strokeStyle = "rgba(255,255,255,.7)";
+    for (const b of BREW) { const y = Math.round(fy(b.phi)) + .5; ctx.beginPath(); ctx.moveTo(box.x, y); ctx.lineTo(box.x + box.w, y); ctx.stroke(); }
+    ctx.setLineDash([]);
+    ctx.font = `10.5px ${T.data}`; ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+    ctx.fillStyle = "#fff"; ctx.shadowColor = "rgba(0,0,0,.85)"; ctx.shadowBlur = 3;
+    for (const b of BREW) ctx.fillText(b.label, box.x + box.w - 5, fy(b.phi) - 2);
+    ctx.shadowBlur = 0;
+    const x = fx(state.d), y = fy(state.phi);
+    ctx.beginPath(); ctx.moveTo(x, box.y); ctx.lineTo(x, box.y + box.h); ctx.moveTo(box.x, y); ctx.lineTo(box.x + box.w, y);
+    ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.stroke();
+    ctx.lineWidth = 1; ctx.strokeStyle = "rgba(255,255,255,.95)"; ctx.stroke();
+    dot(ctx, x, y, 5, "#fff", "#111");
+    ctx.restore();
+
+    // colour bar with the current value marked
+    const cb = { x: box.x, y: box.y + box.h + 44, w: box.w, h: 10 };
+    const lut = LUT[m.lut], g = ctx.createLinearGradient(cb.x, 0, cb.x + cb.w, 0);
+    for (let i = 0; i <= 24; i++) { const li = Math.round(i / 24 * 255) * 3; g.addColorStop(i / 24, `rgb(${lut[li]},${lut[li + 1]},${lut[li + 2]})`); }
+    ctx.fillStyle = g; ctx.fillRect(cb.x, cb.y, cb.w, cb.h);
+    ctx.lineWidth = 1; ctx.strokeStyle = T.line; ctx.strokeRect(cb.x + .5, cb.y + .5, cb.w - 1, cb.h - 1);
+    const [a, b] = m.range, cbx = v => cb.x + (v - a) / (b - a) * cb.w;
+    ctx.fillStyle = T.muted; ctx.font = `11px ${T.data}`; ctx.textBaseline = "top";
+    m.ticks.forEach((v, i) => { ctx.textAlign = i === 0 ? "left" : i === m.ticks.length - 1 ? "right" : "center"; ctx.fillText(m.fmt(v), cbx(v), cb.y + cb.h + 4); });
+    const vx = cbx(clamp(state.cur[key], a, b));
+    ctx.fillStyle = T.ink; ctx.beginPath(); ctx.moveTo(vx, cb.y - 1); ctx.lineTo(vx - 4.5, cb.y - 7); ctx.lineTo(vx + 4.5, cb.y - 7); ctx.closePath(); ctx.fill();
+  }
+
+  // ---- line plots ----
+  function linePlot(cv, o) {
+    const { ctx, W, H } = setup(cv);
+    const box = { x: 60, y: 10, w: W - 60 - 16, h: H - 10 - 40 };
+    const fx = v => box.x + (v - o.xr[0]) / (o.xr[1] - o.xr[0]) * box.w;
+    const fy = v => box.y + box.h - (v - o.yr[0]) / (o.yr[1] - o.yr[0]) * box.h;
+    frame(ctx, box, fx, fy, { grid: true, xt: o.xt, yt: o.yt, xf: o.xf, yf: o.yf, xl: o.xl, yl: o.yl });
+    clipTo(ctx, box);
+    ctx.font = `10.5px ${T.data}`; ctx.textBaseline = "top";
+    for (const b of o.vlines || []) {
+      const x = Math.round(fx(b.phi)) + .5;
+      ctx.setLineDash([4, 4]); ctx.strokeStyle = T.muted; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, box.y); ctx.lineTo(x, box.y + box.h); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = T.muted; ctx.textAlign = b.side === "left" ? "right" : "left";
+      ctx.fillText(b.short, x + (b.side === "left" ? -4 : 4), box.y + 4);
+    }
+    const xm = Math.round(fx(o.xMark)) + .5;
+    ctx.strokeStyle = T.muted; ctx.globalAlpha = .55; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(xm, box.y); ctx.lineTo(xm, box.y + box.h); ctx.stroke(); ctx.globalAlpha = 1;
+    for (const s of o.series) {
+      ctx.strokeStyle = s.color; ctx.lineWidth = 1.9; ctx.lineJoin = "round"; ctx.beginPath();
+      let prev = null;
+      for (let i = 0; i < s.x.length; i++) {
+        const X = fx(s.x[i]), Y = fy(s.y[i]);
+        if (prev === null || (o.wrap && Math.abs(s.y[i] - prev) > o.wrap / 2)) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+        prev = s.y[i];
+      }
+      ctx.stroke();
+    }
+    for (const [x, y, c] of o.marks) dot(ctx, fx(x), fy(y), 4.5, c, T.panel);
+    ctx.restore();
+  }
+
+  function drawCuts() {
+    const I = state.I, cur = state.cur;
+    const fd = [], fp = [];
+    for (let i = 0; i <= 400; i++) fd.push(film(I, D_MAX * i / 400));
+    for (let i = 0; i <= 360; i++) fp.push(film(interfaces(PHI_MAX * i / 360), state.d));
+    const xd = fd.map(f => f.d), xp = fp.map((f, i) => PHI_MAX * i / 360);
+    const dAxis = { xr: [0, D_MAX], xt: D_TICKS, xf: v => String(v), xl: "Film thickness d (nm)", xMark: state.d };
+    const pAxis = { xr: [0, PHI_MAX], xt: PHI_TICKS, xf: v => v + "°", xl: "Angle of incidence φ", xMark: state.phi, vlines: BREW };
+    const R2 = { yr: [0, 1], yt: [0, .25, .5, .75, 1], yf: v => String(v), yl: "|R|²" };
+    const PH = { yr: [-180, 180], yt: [-180, -90, 0, 90, 180], yf: v => sgn(v, 0) + "°", yl: "arg R", wrap: 360 };
+    const PS = { yr: [0, 90], yt: [0, 30, 60, 90], yf: v => v + "°", yl: "ψ" };
+    const DL = { yr: [0, 360], yt: [0, 90, 180, 270, 360], yf: v => v + "°", yl: "Δ", wrap: 360 };
+    if (state.mode === "R") {
+      const pair = (xs, fs, a, b, xv) => ({
+        series: [{ x: xs, y: fs.map(f => f[a]), color: T.p }, { x: xs, y: fs.map(f => f[b]), color: T.s }],
+        marks: [[xv, cur[a], T.p], [xv, cur[b], T.s]],
+      });
+      linePlot($("cut-d-top"), { ...dAxis, ...R2, ...pair(xd, fd, "Rp2", "Rs2", state.d) });
+      linePlot($("cut-d-bot"), { ...dAxis, ...PH, ...pair(xd, fd, "phaseP", "phaseS", state.d) });
+      linePlot($("cut-phi-top"), { ...pAxis, ...R2, ...pair(xp, fp, "Rp2", "Rs2", state.phi) });
+      linePlot($("cut-phi-bot"), { ...pAxis, ...PH, ...pair(xp, fp, "phaseP", "phaseS", state.phi) });
+    } else {
+      const one = (xs, fs, k, xv) => ({ series: [{ x: xs, y: fs.map(f => f[k]), color: T.accent }], marks: [[xv, cur[k], T.accent]] });
+      linePlot($("cut-d-top"), { ...dAxis, ...PS, ...one(xd, fd, "psi", state.d) });
+      linePlot($("cut-d-bot"), { ...dAxis, ...DL, ...one(xd, fd, "delta", state.d) });
+      linePlot($("cut-phi-top"), { ...pAxis, ...PS, ...one(xp, fp, "psi", state.phi) });
+      linePlot($("cut-phi-bot"), { ...pAxis, ...DL, ...one(xp, fp, "delta", state.phi) });
+    }
+  }
+
+  // ---- trajectory over one film period ----
+  function drawTraj() {
+    const cv = $("traj"), I = state.I, D = I.period, n = 480, pts = [];
+    for (let i = 0; i <= n; i++) pts.push(film(I, D * i / n));
+    if (state.mode === "R") complexPlane(cv, pts); else psiDelta(cv, pts, I);
+  }
+
+  function complexPlane(cv, pts) {
+    const { ctx, W, H } = setup(cv);
+    const ml = 58, mr = 16, mt = 12, mb = 44;
+    const s = Math.max(10, Math.min(W - ml - mr, H - mt - mb));
+    const box = { x: ml + (W - ml - mr - s) / 2, y: mt, w: s, h: s };
+    const fx = v => box.x + (v + 1) / 2 * box.w, fy = v => box.y + box.h - (v + 1) / 2 * box.h;
+    const t = [-1, -.5, 0, .5, 1];
+    frame(ctx, box, fx, fy, { grid: true, xt: t, yt: t, xf: v => sgn(v, 1), yf: v => sgn(v, 1), xl: "Re R", yl: "Im R" });
+    clipTo(ctx, box);
+    ctx.strokeStyle = T.line; ctx.lineWidth = 1; ctx.beginPath();
+    ctx.moveTo(fx(0), box.y); ctx.lineTo(fx(0), box.y + box.h); ctx.moveTo(box.x, fy(0)); ctx.lineTo(box.x + box.w, fy(0)); ctx.stroke();
+    ctx.setLineDash([3, 4]); ctx.strokeStyle = T.muted;
+    ctx.beginPath(); ctx.arc(fx(0), fy(0), box.w / 2 - 1, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+    for (const [k, color] of [["Rp", T.p], ["Rs", T.s]]) {
+      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+      pts.forEach((f, i) => { const X = fx(f[k].re), Y = fy(f[k].im); if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); });
+      ctx.stroke();
+      const i = Math.round(pts.length * 0.12), a = pts[i][k], b = pts[i + 1][k];
+      ctx.save(); ctx.translate(fx(b.re), fy(b.im)); ctx.rotate(Math.atan2(fy(b.im) - fy(a.im), fx(b.re) - fx(a.re)));
+      ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, -5); ctx.lineTo(-5, 5); ctx.closePath(); ctx.fill(); ctx.restore();
+      const z = pts[0][k], X0 = fx(z.re), Y0 = fy(z.im);
+      dot(ctx, X0, Y0, 5, T.panel, color);
+      const lx = X0 + (z.re >= 0 ? 10 : 8), ly = Y0 + (z.re >= 0 ? 0 : 15);
+      ctx.font = `11px ${T.data}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.lineWidth = 3; ctx.strokeStyle = T.panel; ctx.strokeText("d = 0", lx, ly);
+      ctx.fillStyle = T.muted; ctx.fillText("d = 0", lx, ly);
+      const c = state.cur[k];
+      dot(ctx, fx(c.re), fy(c.im), 5.5, color, T.panel);
+    }
+    ctx.restore();
+  }
+
+  function psiDelta(cv, pts, I) {
+    const { ctx, W, H } = setup(cv);
+    const box = { x: 60, y: 12, w: W - 60 - 16, h: H - 12 - 44 };
+    const fx = v => box.x + v / 90 * box.w, fy = v => box.y + box.h - v / 360 * box.h;
+    frame(ctx, box, fx, fy, { grid: true, xt: [0, 15, 30, 45, 60, 75, 90], yt: [0, 90, 180, 270, 360], xf: v => v + "°", yf: v => v + "°", xl: "ψ", yl: "Δ" });
+    clipTo(ctx, box);
+    ctx.strokeStyle = T.accent; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.beginPath();
+    let prev = null;
+    for (const f of pts) {
+      const X = fx(f.psi), Y = fy(f.delta);
+      if (prev === null || Math.abs(f.delta - prev) > 180) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+      prev = f.delta;
+    }
+    ctx.stroke();
+    ctx.font = `10.5px ${T.data}`; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+    for (let t = 50; t < I.period - 10; t += 50) {
+      const f = film(I, t), X = fx(f.psi), Y = fy(f.delta);
+      ctx.beginPath(); ctx.arc(X, Y, 2.6, 0, 2 * Math.PI); ctx.fillStyle = T.ink; ctx.fill();
+      ctx.fillStyle = T.muted; ctx.fillText(String(t), X + 5, Y - 3);
+    }
+    const z = pts[0];
+    dot(ctx, fx(z.psi), fy(z.delta), 5, T.panel, T.accent);
+    ctx.fillStyle = T.muted; ctx.font = `11px ${T.data}`; ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText("bare Si, d = 0", fx(z.psi) + 9, fy(z.delta) + 5);
+    dot(ctx, fx(state.cur.psi), fy(state.cur.delta), 5.5, T.accent, T.panel);
+    ctx.restore();
+  }
+
+  // ---- text that follows the mode ----
+  const NOTES = {
+    R: {
+      maps: "Bands across each map are interference fringes. The film looks the same every <span class=\"m\"><i>D</i> = <i>λ</i> / (2<i>N</i><sub>2</sub> cos <i>φ</i><sub>2</sub>)</span>, so the fringes spread out toward grazing angles. At the air–SiO₂ Brewster angle (55.5°) <span class=\"m\"><i>r</i><sub>12</sub><sup>p</sup> = 0</span>, so <span class=\"m\"><i>R</i><sup>p</sup> = <i>r</i><sub>23</sub><sup>p</sup><i>e</i><sup>−<i>i</i>2<i>β</i></sup></span> and |<i>R</i><sup>p</sup>|² stops depending on <span class=\"m\"><i>d</i></span>: the p fringes vanish along that line.",
+      trajH: "Complex plane, one film period",
+      traj: "As <span class=\"m\"><i>d</i></span> grows, <span class=\"m\"><i>e</i><sup>−<i>i</i>2<i>β</i></sup></span> turns around the unit circle and each total reflection coefficient traces a circle of its own. The trace covers one film period <span class=\"m\"><i>D</i></span>; after that the reflection repeats exactly, because SiO₂ does not absorb. Hollow dots are bare silicon (<span class=\"m\"><i>d</i> = 0</span>), filled dots are the current thickness, and the arrows point the way the film grows. The dashed circle is |<i>R</i>| = 1.",
+    },
+    B: {
+      maps: "<span class=\"m\"><i>ψ</i></span> and Δ come from the ratio <span class=\"m\"><i>ρ</i> = <i>R</i><sup>p</sup>/<i>R</i><sup>s</sup> = tan <i>ψ</i> <i>e</i><sup><i>i</i>Δ</sup></span>, so they show the same fringes. Along the left edge (bare silicon, <span class=\"m\"><i>d</i> = 0</span>) Δ drops from 180° to 0° near the Si Brewster angle. A thin film shifts Δ most strongly near there, which is one reason measurements on silicon are usually made around 70°.",
+      trajH: "ψ–Δ trajectory, one film period",
+      traj: "As the oxide grows, the measured pair (<span class=\"m\"><i>ψ</i></span>, Δ) leaves the bare-silicon point and returns to it after one film period <span class=\"m\"><i>D</i></span>. Each point on the loop is a different thickness, which is how an ellipsometer reads <span class=\"m\"><i>d</i></span>, up to whole periods. Dots are labelled with thickness in nm; the filled dot is the current thickness.",
+    },
+  };
+
+  function applyMode() {
+    const R = state.mode === "R";
+    $("mode-R").setAttribute("aria-pressed", String(R));
+    $("mode-B").setAttribute("aria-pressed", String(!R));
+    const [a, b] = R ? ["Rp2", "Rs2"] : ["psi", "delta"];
+    $("map-a-title").innerHTML = MAPS[a].title;
+    $("map-b-title").innerHTML = MAPS[b].title;
+    $("legend").hidden = !R;
+    $("maps-note").innerHTML = NOTES[state.mode].maps;
+    $("traj-h").textContent = NOTES[state.mode].trajH;
+    $("traj-note").innerHTML = NOTES[state.mode].traj;
+  }
+
+  function updateValues() {
+    const I = interfaces(state.phi), f = film(I, state.d);
+    state.I = I; state.cur = f;
+    $("v-r12p").textContent = sgn(I.r12p, 3);
+    $("v-r12s").textContent = sgn(I.r12s, 3);
+    $("v-r23p").textContent = fmtC(I.r23p);
+    $("v-r23s").textContent = fmtC(I.r23s);
+    $("v-Rp").textContent = fmtC(f.Rp);
+    $("v-Rs").textContent = fmtC(f.Rs);
+    $("v-Rp2").textContent = f.Rp2.toFixed(4);
+    $("v-Rs2").textContent = f.Rs2.toFixed(4);
+    $("v-argp").textContent = fmtDeg(f.phaseP);
+    $("v-args").textContent = fmtDeg(f.phaseS);
+    $("v-psi").textContent = fmtDeg(f.psi, 2);
+    $("v-delta").textContent = fmtDeg(f.delta, 2);
+    $("v-phi2").textContent = fmtDeg(I.phi2, 2);
+    $("v-beta").textContent = fmtDeg(f.beta * 180 / Math.PI);
+    $("v-D").textContent = I.period.toFixed(1) + " nm";
+    $("v-dD").textContent = (state.d / I.period).toFixed(3);
+    $("cut-d-title").innerHTML = `Versus thickness <span class="tag">at φ = ${state.phi.toFixed(1)}°</span>`;
+    $("cut-phi-title").innerHTML = `Versus angle <span class="tag">at d = ${state.d.toFixed(1)} nm</span>`;
+  }
+
+  function drawAll() {
+    const [a, b] = state.mode === "R" ? ["Rp2", "Rs2"] : ["psi", "delta"];
+    drawMap($("map-a"), a);
+    drawMap($("map-b"), b);
+    drawCuts();
+    drawTraj();
+  }
+  let raf = 0;
+  const requestDraw = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; drawAll(); }); };
+
+  // ---- inputs ----
+  function set(d, phi) {
+    state.d = clamp(d, 0, D_MAX);
+    state.phi = clamp(phi, 0, 89.9);
+    $("d").value = state.d; $("dNum").value = +state.d.toFixed(1);
+    $("phi").value = state.phi; $("phiNum").value = +state.phi.toFixed(1);
+    updateValues();
+    requestDraw();
+  }
+  $("d").addEventListener("input", e => set(+e.target.value, state.phi));
+  $("phi").addEventListener("input", e => set(state.d, +e.target.value));
+  $("dNum").addEventListener("change", e => { const v = parseFloat(e.target.value); set(Number.isFinite(v) ? v : state.d, state.phi); });
+  $("phiNum").addEventListener("change", e => { const v = parseFloat(e.target.value); set(state.d, Number.isFinite(v) ? v : state.phi); });
+  for (const m of ["R", "B"]) $("mode-" + m).addEventListener("click", () => { state.mode = m; applyMode(); requestDraw(); });
+
+  function bindMap(cv) {
+    let down = false;
+    const pick = e => {
+      const b = cv._box, r = cv.getBoundingClientRect();
+      const x = e.clientX - r.left, y = e.clientY - r.top;
+      set(Math.round((x - b.x) / b.w * D_MAX * 2) / 2, Math.round((1 - (y - b.y) / b.h) * PHI_MAX * 10) / 10);
+    };
+    cv.addEventListener("pointerdown", e => {
+      const b = cv._box, r = cv.getBoundingClientRect();
+      if (!b || e.clientY - r.top > b.y + b.h + 4 || e.clientX - r.left < b.x - 4) return;
+      down = true;
+      if (e.pointerType !== "touch") cv.setPointerCapture(e.pointerId);
+      pick(e);
+    });
+    cv.addEventListener("pointermove", e => { if (down && e.pointerType !== "touch") pick(e); });
+    const up = () => { down = false; };
+    cv.addEventListener("pointerup", up);
+    cv.addEventListener("pointercancel", up);
+  }
+  bindMap($("map-a"));
+  bindMap($("map-b"));
+
+  // ---- redraw on resize, theme change and font load ----
+  const ro = new ResizeObserver(requestDraw);
+  document.querySelectorAll("canvas").forEach(c => ro.observe(c));
+  const retheme = () => { readTheme(); requestDraw(); };
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", retheme);
+  new MutationObserver(retheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(retheme);
+
+  readTheme();
+  applyMode();
+  updateValues();
+  drawAll();
+})();
+</script>
+</body>
+</html>
