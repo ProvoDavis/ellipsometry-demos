@@ -108,6 +108,8 @@ canvas { display: block; width: 100%; max-width: 100%; }
 .map canvas { aspect-ratio: 1 / 1; cursor: crosshair; touch-action: manipulation; }
 .cut canvas { aspect-ratio: 16 / 8.6; }
 .cut canvas + canvas { margin-top: 4px; }
+.cut h3 { row-gap: 0; }
+.cut h3 .tag { flex-basis: 100%; }
 .legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); margin: 0 0 8px; flex-wrap: wrap; }
 .legend .sw { display: inline-block; width: 18px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
 .traj-wrap { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; }
@@ -128,7 +130,7 @@ canvas { display: block; width: 100%; max-width: 100%; }
   <header>
     <span class="eyebrow">Thin-film ellipsometry · Eqs. 2.26a–b</span>
     <h1>Reflection from SiO₂ on Si</h1>
-    <p>Total reflection coefficients <span class="m"><i>R</i><sup>p</sup></span> and <span class="m"><i>R</i><sup>s</sup></span> for a transparent oxide film on a silicon wafer. Set the film thickness <span class="m"><i>d</i></span> and the angle of incidence <span class="m"><i>φ</i></span> with the sliders, or click anywhere on a map.</p>
+    <p>Total reflection coefficients <span class="m"><i>R</i><sup>p</sup></span> and <span class="m"><i>R</i><sup>s</sup></span> for a transparent oxide film on a silicon wafer. Set the film thickness <span class="m"><i>d</i></span>, the angle of incidence <span class="m"><i>φ</i></span> and the photon energy <span class="m"><i>E</i></span> with the sliders, or click anywhere on a map. Plot against thickness at one energy, or against energy at one thickness, as a spectroscopic ellipsometer does.</p>
   </header>
 
   <div class="layout">
@@ -139,6 +141,13 @@ canvas { display: block; width: 100%; max-width: 100%; }
           <div class="seg" role="group" aria-label="Quantities shown">
             <button type="button" id="mode-R" aria-pressed="true">|R|² and phase</button>
             <button type="button" id="mode-B" aria-pressed="false">ψ and Δ</button>
+          </div>
+        </div>
+        <div>
+          <h2>Horizontal axis</h2>
+          <div class="seg" role="group" aria-label="Horizontal axis">
+            <button type="button" id="axis-d" aria-pressed="true">Thickness <i>d</i></button>
+            <button type="button" id="axis-E" aria-pressed="false">Photon energy <i>E</i></button>
           </div>
         </div>
         <div class="ctl">
@@ -155,7 +164,14 @@ canvas { display: block; width: 100%; max-width: 100%; }
             <span class="num"><input type="number" id="phiNum" min="0" max="89.9" step="0.1" value="70" aria-label="Angle of incidence in degrees">°</span>
           </div>
         </div>
-        <p class="materials"><span class="m"><i>λ</i></span> = 632.8 nm · air <span class="m"><i>N</i><sub>1</sub></span> = 1<br>SiO₂ <span class="m"><i>N</i><sub>2</sub></span> = 1.457 · Si <span class="m"><i>Ñ</i><sub>3</sub></span> = 3.882 − 0.019<i>i</i></p>
+        <div class="ctl">
+          <label for="E">Photon energy <span class="m"><i>E</i></span></label>
+          <div class="row">
+            <input type="range" id="E" min="1.5" max="6" step="0.001" value="1.959">
+            <span class="num"><input type="number" id="ENum" min="1.5" max="6" step="0.01" value="1.959" aria-label="Photon energy in electronvolts">eV</span>
+          </div>
+        </div>
+        <p class="materials" id="materials"></p>
       </section>
 
       <section class="panel" aria-label="Values at the current point">
@@ -177,6 +193,7 @@ canvas { display: block; width: 100%; max-width: 100%; }
           <dt>Film phase <span class="m"><i>β</i></span></dt><dd id="v-beta"></dd>
           <dt>Film period <span class="m"><i>D</i></span></dt><dd id="v-D"></dd>
           <dt><span class="m"><i>d</i> / <i>D</i></span></dt><dd id="v-dD"></dd>
+          <dt>Fringe spacing <span class="m">Δ<i>E</i></span></dt><dd id="v-dE"></dd>
         </dl>
       </section>
     </aside>
@@ -204,7 +221,9 @@ canvas { display: block; width: 100%; max-width: 100%; }
           <div class="eq">
             <span><i>β</i> = 2π</span>
             <span class="frac"><span><i>d</i></span><span><i>λ</i></span></span>
-            <span><i>Ñ</i><sub>2</sub> cos <i>φ</i><sub>2</sub></span>
+            <span><i>Ñ</i><sub>2</sub> cos <i>φ</i><sub>2</sub>,</span>
+            <span style="width:18px"></span>
+            <span><i>λ</i> = <i>hc</i> / <i>E</i></span>
           </div>
         </div>
         <details>
@@ -220,7 +239,8 @@ canvas { display: block; width: 100%; max-width: 100%; }
             </div>
             <div class="eq"><span><i>ρ</i> = <i>R</i><sup>p</sup> / <i>R</i><sup>s</sup> = tan <i>ψ</i> <i>e</i><sup><i>i</i>Δ</sup></span></div>
           </div>
-          <p>The film–substrate coefficients <span class="m"><i>r</i><sub>23</sub></span> use the same forms with 1 → 2 and 2 → 3. Complex indices are written <span class="m"><i>Ñ</i> = <i>n</i> − <i>ik</i></span>. With these signs <span class="m"><i>R</i><sup>p</sup> = −<i>R</i><sup>s</sup></span> at normal incidence, so Δ = 180° there, and for bare silicon Δ stays near 180° below its Brewster angle. SiO₂ does not absorb at 632.8 nm, so <span class="m"><i>β</i></span> is real and every curve repeats after one film period <span class="m"><i>D</i> = <i>λ</i> / (2<i>N</i><sub>2</sub> cos <i>φ</i><sub>2</sub>)</span>.</p>
+          <p>The film–substrate coefficients <span class="m"><i>r</i><sub>23</sub></span> use the same forms with 1 → 2 and 2 → 3. Complex indices are written <span class="m"><i>Ñ</i> = <i>n</i> − <i>ik</i></span>. With these signs <span class="m"><i>R</i><sup>p</sup> = −<i>R</i><sup>s</sup></span> at normal incidence, so Δ = 180° there. SiO₂ does not absorb anywhere from 1.5 to 6 eV, so <span class="m"><i>β</i></span> is real and, at a fixed energy, every curve repeats after one film period <span class="m"><i>D</i> = <i>λ</i> / (2<i>N</i><sub>2</sub> cos <i>φ</i><sub>2</sub>)</span>.</p>
+          <p>Optical constants: SiO₂ from Malitson's Sellmeier formula for fused silica (1965); Si from Aspnes and Studna (1983), tabulated every 0.1 eV from 1.5 to 6 eV and interpolated smoothly. Both come from refractiveindex.info. At 632.8 nm (1.959 eV) they give <span class="m"><i>N</i><sub>2</sub> = 1.457</span> and <span class="m"><i>Ñ</i><sub>3</sub> = 3.881 − 0.019<i>i</i></span>.</p>
         </details>
       </section>
 
@@ -229,11 +249,11 @@ canvas { display: block; width: 100%; max-width: 100%; }
         <div class="two">
           <div class="map">
             <h3 id="map-a-title"></h3>
-            <canvas id="map-a" role="img" aria-label="Map over film thickness and angle of incidence"></canvas>
+            <canvas id="map-a" role="img" aria-label="Map over film thickness or photon energy and angle of incidence"></canvas>
           </div>
           <div class="map">
             <h3 id="map-b-title"></h3>
-            <canvas id="map-b" role="img" aria-label="Map over film thickness and angle of incidence"></canvas>
+            <canvas id="map-b" role="img" aria-label="Map over film thickness or photon energy and angle of incidence"></canvas>
           </div>
         </div>
         <p class="note" id="maps-note"></p>
@@ -247,9 +267,9 @@ canvas { display: block; width: 100%; max-width: 100%; }
         </div>
         <div class="two">
           <div class="cut">
-            <h3 id="cut-d-title"></h3>
-            <canvas id="cut-d-top" role="img" aria-label="Line cut versus film thickness"></canvas>
-            <canvas id="cut-d-bot" role="img" aria-label="Line cut versus film thickness"></canvas>
+            <h3 id="cut-x-title"></h3>
+            <canvas id="cut-x-top" role="img" aria-label="Line cut versus film thickness or photon energy"></canvas>
+            <canvas id="cut-x-bot" role="img" aria-label="Line cut versus film thickness or photon energy"></canvas>
           </div>
           <div class="cut">
             <h3 id="cut-phi-title"></h3>
@@ -257,7 +277,7 @@ canvas { display: block; width: 100%; max-width: 100%; }
             <canvas id="cut-phi-bot" role="img" aria-label="Line cut versus angle of incidence"></canvas>
           </div>
         </div>
-        <p class="note">Dashed lines mark the Brewster angles of bare SiO₂ (55.5°) and bare Si (75.6°). The grey vertical line is the current setting.</p>
+        <p class="note" id="cuts-note"></p>
       </section>
 
       <section class="panel" aria-labelledby="traj-h">
@@ -273,12 +293,36 @@ canvas { display: block; width: 100%; max-width: 100%; }
 
 <script id="physics">
 const Phys = (() => {
-  const LAMBDA = 632.8;                 // nm, HeNe line
+  const HC = 1239.842;                  // nm·eV, so λ = HC / E
   const N1 = 1;                         // ambient: air
-  const N2 = 1.457;                     // film: SiO2
-  const N3 = { re: 3.882, im: -0.019 }; // substrate: Si, Ñ = n − ik
+  const E_MIN = 1.5, E_MAX = 6.0;       // eV, the range of the Si table
+  const E_HENE = HC / 632.8;            // 1.959 eV, the HeNe line
   const D_MAX = 1000, PHI_MAX = 90;
   const DEG = Math.PI / 180;
+
+  // Film, SiO2: Malitson (1965) Sellmeier formula for fused silica, λ in µm
+  function nSiO2(lambda) {
+    const l2 = (lambda / 1000) ** 2;
+    return Math.sqrt(1 + 0.6961663 * l2 / (l2 - 0.0684043 ** 2) + 0.4079426 * l2 / (l2 - 0.1162414 ** 2) + 0.8974794 * l2 / (l2 - 9.896161 ** 2));
+  }
+
+  // Substrate, Si: Aspnes & Studna (1983), n and k every 0.1 eV from 1.5 to 6.0 eV
+  const SI_N = [3.673, 3.714, 3.752, 3.796, 3.847, 3.906, 3.969, 4.042, 4.123, 4.215, 4.32, 4.442, 4.583, 4.753, 4.961, 5.222, 5.57, 6.062, 6.709, 6.522, 5.61, 5.296, 5.156, 5.065, 5.016, 5.01, 5.02, 4.888, 4.087, 3.12, 2.452, 1.988, 1.764, 1.658, 1.597, 1.57, 1.571, 1.589, 1.579, 1.471, 1.34, 1.247, 1.186, 1.133, 1.083, 1.01];
+  const SI_K = [0.005, 0.008, 0.01, 0.013, 0.016, 0.022, 0.03, 0.032, 0.048, 0.06, 0.073, 0.09, 0.13, 0.163, 0.203, 0.269, 0.387, 0.63, 1.32, 2.705, 3.014, 2.987, 3.058, 3.182, 3.346, 3.586, 3.979, 4.639, 5.395, 5.344, 5.082, 4.678, 4.278, 3.979, 3.749, 3.565, 3.429, 3.354, 3.353, 3.366, 3.302, 3.206, 3.12, 3.045, 2.982, 2.909];
+  function siIndex(E) {
+    const t = Math.min(45, Math.max(0, (E - E_MIN) / 0.1)), i = Math.min(44, Math.floor(t)), f = t - i;
+    const cr = a => {   // Catmull-Rom cubic through the tabulated points
+      const p0 = a[Math.max(0, i - 1)], p1 = a[i], p2 = a[i + 1], p3 = a[Math.min(45, i + 2)];
+      return p1 + 0.5 * f * (p2 - p0 + f * (2 * p0 - 5 * p1 + 4 * p2 - p3 + f * (3 * (p1 - p2) + p3 - p0)));
+    };
+    return { re: cr(SI_N), im: -Math.max(0, cr(SI_K)) };   // Ñ = n − ik
+  }
+
+  let lastE = NaN, lastO = null;
+  function optics(E) {
+    if (E !== lastE) { const lambda = HC / E; lastE = E; lastO = { E, lambda, N2: nSiO2(lambda), N3: siIndex(E) }; }
+    return lastO;
+  }
 
   const add = (a, b) => ({ re: a.re + b.re, im: a.im + b.im });
   const sub = (a, b) => ({ re: a.re - b.re, im: a.im - b.im });
@@ -296,8 +340,9 @@ const Phys = (() => {
   const arg = a => Math.atan2(a.im, a.re);
   const real = x => ({ re: x, im: 0 });
 
-  // Everything that depends only on the angle of incidence
-  function interfaces(phiDeg) {
+  // Everything that does not depend on the film thickness
+  function interfaces(phiDeg, E) {
+    const { lambda, N2, N3 } = optics(E);
     const s = N1 * Math.sin(phiDeg * DEG);            // N1 sin φ1, the same in every layer (Snell)
     const cos1 = Math.cos(phiDeg * DEG);
     const sin2 = s / N2, cos2 = Math.sqrt(1 - sin2 * sin2);
@@ -309,7 +354,7 @@ const Phys = (() => {
     const r23p = div(sub(a, b), add(a, b));
     const c = real(N2 * cos2);
     const r23s = div(sub(c, q3), add(c, q3));
-    return { phi: phiDeg, phi2: Math.asin(sin2) / DEG, cos2, r12p, r12s, r23p, r23s, period: LAMBDA / (2 * N2 * cos2) };
+    return { phi: phiDeg, E, lambda, N2, N3, phi2: Math.asin(sin2) / DEG, cos2, r12p, r12s, r23p, r23s, period: lambda / (2 * N2 * cos2) };
   }
 
   // Eq. 2.26: R = (r12 + r23 e^{-i2β}) / (1 + r12 r23 e^{-i2β}); r12 is real here
@@ -319,36 +364,56 @@ const Phys = (() => {
   }
 
   function film(I, d) {
-    const beta = 2 * Math.PI * (d / LAMBDA) * N2 * I.cos2;   // real: SiO2 does not absorb at 632.8 nm
+    const beta = 2 * Math.PI * (d / I.lambda) * I.N2 * I.cos2;   // real: SiO2 does not absorb below about 8 eV
     const e = { re: Math.cos(2 * beta), im: -Math.sin(2 * beta) };
     const Rp = total(I.r12p, I.r23p, e), Rs = total(I.r12s, I.r23s, e);
     const mp = abs(Rp), ms = abs(Rs);
     let delta = arg(div(Rp, Rs)) / DEG;
     if (delta < 0) delta += 360;
     return {
-      d, beta, Rp, Rs, Rp2: mp * mp, Rs2: ms * ms,
+      d, E: I.E, beta, Rp, Rs, Rp2: mp * mp, Rs2: ms * ms,
       phaseP: arg(Rp) / DEG, phaseS: arg(Rs) / DEG,
       psi: Math.atan2(mp, ms) / DEG, delta,
     };
   }
 
-  const brewster = { film: Math.atan(N2 / N1) / DEG, substrate: Math.atan(N3.re / N1) / DEG };
-  return { LAMBDA, N1, N2, N3, D_MAX, PHI_MAX, interfaces, film, brewster };
+  // Bare silicon: |r_p| is smallest at the pseudo-Brewster angle (golden-section search)
+  function siBrewster(E) {
+    const N3sq = mul(siIndex(E), siIndex(E));
+    const rp = phi => {
+      const s = Math.sin(phi * DEG), a = mul(N3sq, real(Math.cos(phi * DEG))), b = sqrt(sub(N3sq, real(s * s)));
+      return abs(div(sub(a, b), add(a, b)));
+    };
+    const g = (Math.sqrt(5) - 1) / 2;
+    let lo = 30, hi = 89.9, x1 = hi - g * (hi - lo), x2 = lo + g * (hi - lo), f1 = rp(x1), f2 = rp(x2);
+    for (let it = 0; it < 40; it++) {
+      if (f1 < f2) { hi = x2; x2 = x1; f2 = f1; x1 = hi - g * (hi - lo); f1 = rp(x1); }
+      else { lo = x1; x1 = x2; f1 = f2; x2 = lo + g * (hi - lo); f2 = rp(x2); }
+    }
+    return (lo + hi) / 2;
+  }
+  const brewster = E => ({ film: Math.atan(nSiO2(HC / E) / N1) / DEG, substrate: siBrewster(E) });
+
+  // Si interband critical points, marked on the energy plots
+  const CRIT = [{ E: 3.4, label: "E₁" }, { E: 4.25, label: "E₂" }];
+
+  return { HC, N1, E_MIN, E_MAX, E_HENE, D_MAX, PHI_MAX, CRIT, optics, interfaces, film, brewster };
 })();
 </script>
 
 <script>
 (() => {
   "use strict";
-  const { D_MAX, PHI_MAX, interfaces, film, brewster } = Phys;
+  const { E_MIN, E_MAX, E_HENE, D_MAX, PHI_MAX, CRIT, interfaces, film, brewster } = Phys;
   const $ = id => document.getElementById(id);
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-  const state = { d: 100, phi: 70, mode: "R", cur: null, I: null };
+  const state = { d: 100, phi: 70, E: E_HENE, mode: "R", axis: "d", cur: null, I: null, B: null };
 
   // ---- formatting ----
   const sgn = (v, n) => { const s = Math.abs(v).toFixed(n); return (v < 0 && +s !== 0 ? "−" : "") + s; };
   const fmtC = z => `${sgn(z.re, 3)} ${z.im < 0 ? "−" : "+"} ${Math.abs(z.im).toFixed(3)}i`;
   const fmtDeg = (v, n = 1) => sgn(v, n) + "°";
+  const fmtEv = v => (v >= 100 ? "> 100" : v.toFixed(v < 10 ? 3 : 1)) + " eV";
 
   // ---- theme ----
   const T = {};
@@ -384,17 +449,42 @@ const Phys = (() => {
       title: `<span class="m">Δ</span> <span class="tag">arg R<sup>p</sup> − arg R<sup>s</sup></span>` },
   };
 
-  // ---- map fields: computed once ----
+  // ---- horizontal axis: film thickness or photon energy ----
+  const AXES = {
+    d: { min: 0, max: D_MAX, ticks: [0, 200, 400, 600, 800, 1000], fmt: v => String(v), label: "Film thickness d (nm)", snap: v => Math.round(v * 2) / 2 },
+    E: { min: E_MIN, max: E_MAX, ticks: [2, 3, 4, 5, 6], fmt: v => String(v), label: "Photon energy E (eV)", snap: v => Math.round(v * 100) / 100 },
+  };
+  const PHI_TICKS = [0, 15, 30, 45, 60, 75, 90];
+  const ax = () => AXES[state.axis];
+  const xNow = () => (state.axis === "d" ? state.d : state.E);
+  const xAt = (i, n) => { const A = ax(); return A.min + (A.max - A.min) * i / n; };
+
+  // ---- map fields: recomputed when the parameter held fixed (E for thickness maps, d for energy maps) changes ----
   const NX = 251, NY = 181;
   const fields = { Rp2: new Float32Array(NX * NY), Rs2: new Float32Array(NX * NY), psi: new Float32Array(NX * NY), delta: new Float32Array(NX * NY) };
-  for (let j = 0; j < NY; j++) {
-    const I = interfaces(PHI_MAX * j / (NY - 1));
-    for (let i = 0; i < NX; i++) {
-      const f = film(I, D_MAX * i / (NX - 1)), k = (NY - 1 - j) * NX + i;
+  const EB = Array.from({ length: NX }, (_, i) => brewster(E_MIN + (E_MAX - E_MIN) * i / (NX - 1)));   // Brewster curves on the energy maps
+  let fieldsKey = "", images = {};
+  function ensureFields() {
+    const key = state.axis === "d" ? `d|${state.E}` : `E|${state.d}`;
+    if (key === fieldsKey) return;
+    fieldsKey = key; images = {};
+    const put = (i, j, f) => {
+      const k = (NY - 1 - j) * NX + i;
       fields.Rp2[k] = f.Rp2; fields.Rs2[k] = f.Rs2; fields.psi[k] = f.psi; fields.delta[k] = f.delta;
+    };
+    const phiAt = j => PHI_MAX * j / (NY - 1);
+    if (state.axis === "d") {
+      for (let j = 0; j < NY; j++) {
+        const I = interfaces(phiAt(j), state.E);
+        for (let i = 0; i < NX; i++) put(i, j, film(I, xAt(i, NX - 1)));
+      }
+    } else {
+      for (let i = 0; i < NX; i++) {
+        const E = xAt(i, NX - 1);
+        for (let j = 0; j < NY; j++) put(i, j, film(interfaces(phiAt(j), E), state.d));
+      }
     }
   }
-  const images = {};
   function mapImage(key) {
     if (images[key]) return images[key];
     const m = MAPS[key], src = fields[key], lut = LUT[m.lut], [a, b] = m.range;
@@ -408,12 +498,12 @@ const Phys = (() => {
     return (images[key] = cv);
   }
 
-  const BREW = [
-    { phi: brewster.film, label: `SiO₂ Brewster ${brewster.film.toFixed(1)}°`, short: "SiO₂", side: "left" },
-    { phi: brewster.substrate, label: `Si Brewster ${brewster.substrate.toFixed(1)}°`, short: "Si", side: "right" },
+  // Brewster angles at the current energy, and the Si critical points for energy plots
+  const brewMarks = () => [
+    { x: state.B.film, label: `SiO₂ Brewster ${state.B.film.toFixed(1)}°`, short: "SiO₂", side: "left" },
+    { x: state.B.substrate, label: `Si Brewster ${state.B.substrate.toFixed(1)}°`, short: "Si", side: "right" },
   ];
-  const D_TICKS = [0, 200, 400, 600, 800, 1000];
-  const PHI_TICKS = [0, 15, 30, 45, 60, 75, 90];
+  const CRIT_MARKS = CRIT.map(c => ({ x: c.E, short: c.label, side: "right" }));
 
   // ---- drawing helpers ----
   function setup(cv) {
@@ -461,23 +551,34 @@ const Phys = (() => {
   // ---- maps ----
   function drawMap(cv, key) {
     const { ctx, W, H } = setup(cv);
-    const m = MAPS[key];
+    const m = MAPS[key], A = ax();
     const box = { x: 52, y: 8, w: W - 52 - 18, h: H - 8 - 80 };
     cv._box = box;
-    const fx = d => box.x + d / D_MAX * box.w, fy = p => box.y + box.h - p / PHI_MAX * box.h;
+    const fx = v => box.x + (v - A.min) / (A.max - A.min) * box.w, fy = p => box.y + box.h - p / PHI_MAX * box.h;
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(mapImage(key), box.x, box.y, box.w, box.h);
-    frame(ctx, box, fx, fy, { grid: false, xt: D_TICKS, yt: PHI_TICKS, xf: v => String(v), yf: v => v + "°", xl: "Film thickness d (nm)", yl: "Angle of incidence φ" });
+    frame(ctx, box, fx, fy, { grid: false, xt: A.ticks, yt: PHI_TICKS, xf: A.fmt, yf: v => v + "°", xl: A.label, yl: "Angle of incidence φ" });
 
     clipTo(ctx, box);
     ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.strokeStyle = "rgba(255,255,255,.7)";
-    for (const b of BREW) { const y = Math.round(fy(b.phi)) + .5; ctx.beginPath(); ctx.moveTo(box.x, y); ctx.lineTo(box.x + box.w, y); ctx.stroke(); }
+    let labels;
+    if (state.axis === "d") {   // fixed energy: the Brewster angles are horizontal lines
+      labels = brewMarks().map(b => [b.label, fy(b.x)]);
+      for (const [, y] of labels) { const Y = Math.round(y) + .5; ctx.beginPath(); ctx.moveTo(box.x, Y); ctx.lineTo(box.x + box.w, Y); ctx.stroke(); }
+    } else {                    // the Brewster angles move with energy
+      for (const k of ["film", "substrate"]) {
+        ctx.beginPath();
+        EB.forEach((b, i) => { const X = box.x + i / (NX - 1) * box.w, Y = fy(b[k]); if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); });
+        ctx.stroke();
+      }
+      labels = [["SiO₂ Brewster", fy(EB[NX - 1].film)], ["Si Brewster", fy(EB[NX - 1].substrate)]];
+    }
     ctx.setLineDash([]);
     ctx.font = `10.5px ${T.data}`; ctx.textAlign = "right"; ctx.textBaseline = "bottom";
     ctx.fillStyle = "#fff"; ctx.shadowColor = "rgba(0,0,0,.85)"; ctx.shadowBlur = 3;
-    for (const b of BREW) ctx.fillText(b.label, box.x + box.w - 5, fy(b.phi) - 2);
+    for (const [text, y] of labels) ctx.fillText(text, box.x + box.w - 5, y - 2);
     ctx.shadowBlur = 0;
-    const x = fx(state.d), y = fy(state.phi);
+    const x = fx(xNow()), y = fy(state.phi);
     ctx.beginPath(); ctx.moveTo(x, box.y); ctx.lineTo(x, box.y + box.h); ctx.moveTo(box.x, y); ctx.lineTo(box.x + box.w, y);
     ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.stroke();
     ctx.lineWidth = 1; ctx.strokeStyle = "rgba(255,255,255,.95)"; ctx.stroke();
@@ -507,7 +608,7 @@ const Phys = (() => {
     clipTo(ctx, box);
     ctx.font = `10.5px ${T.data}`; ctx.textBaseline = "top";
     for (const b of o.vlines || []) {
-      const x = Math.round(fx(b.phi)) + .5;
+      const x = Math.round(fx(b.x)) + .5;
       ctx.setLineDash([4, 4]); ctx.strokeStyle = T.muted; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x, box.y); ctx.lineTo(x, box.y + box.h); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle = T.muted; ctx.textAlign = b.side === "left" ? "right" : "left";
@@ -531,39 +632,46 @@ const Phys = (() => {
   }
 
   function drawCuts() {
-    const I = state.I, cur = state.cur;
-    const fd = [], fp = [];
-    for (let i = 0; i <= 400; i++) fd.push(film(I, D_MAX * i / 400));
-    for (let i = 0; i <= 360; i++) fp.push(film(interfaces(PHI_MAX * i / 360), state.d));
-    const xd = fd.map(f => f.d), xp = fp.map((f, i) => PHI_MAX * i / 360);
-    const dAxis = { xr: [0, D_MAX], xt: D_TICKS, xf: v => String(v), xl: "Film thickness d (nm)", xMark: state.d };
-    const pAxis = { xr: [0, PHI_MAX], xt: PHI_TICKS, xf: v => v + "°", xl: "Angle of incidence φ", xMark: state.phi, vlines: BREW };
+    const I = state.I, cur = state.cur, A = ax(), n = 450;
+    const xs = [], fs = [], xp = [], fp = [];
+    for (let i = 0; i <= n; i++) {
+      const x = xAt(i, n);
+      xs.push(x);
+      fs.push(state.axis === "d" ? film(I, x) : film(interfaces(state.phi, x), state.d));
+    }
+    for (let i = 0; i <= 360; i++) { xp.push(PHI_MAX * i / 360); fp.push(film(interfaces(PHI_MAX * i / 360, state.E), state.d)); }
+    const xAxis = { xr: [A.min, A.max], xt: A.ticks, xf: A.fmt, xl: A.label, xMark: xNow(), vlines: state.axis === "E" ? CRIT_MARKS : [] };
+    const pAxis = { xr: [0, PHI_MAX], xt: PHI_TICKS, xf: v => v + "°", xl: "Angle of incidence φ", xMark: state.phi, vlines: brewMarks() };
     const R2 = { yr: [0, 1], yt: [0, .25, .5, .75, 1], yf: v => String(v), yl: "|R|²" };
     const PH = { yr: [-180, 180], yt: [-180, -90, 0, 90, 180], yf: v => sgn(v, 0) + "°", yl: "arg R", wrap: 360 };
     const PS = { yr: [0, 90], yt: [0, 30, 60, 90], yf: v => v + "°", yl: "ψ" };
     const DL = { yr: [0, 360], yt: [0, 90, 180, 270, 360], yf: v => v + "°", yl: "Δ", wrap: 360 };
+    const xv = xNow();
     if (state.mode === "R") {
-      const pair = (xs, fs, a, b, xv) => ({
-        series: [{ x: xs, y: fs.map(f => f[a]), color: T.p }, { x: xs, y: fs.map(f => f[b]), color: T.s }],
-        marks: [[xv, cur[a], T.p], [xv, cur[b], T.s]],
+      const pair = (xx, ff, a, b, v) => ({
+        series: [{ x: xx, y: ff.map(f => f[a]), color: T.p }, { x: xx, y: ff.map(f => f[b]), color: T.s }],
+        marks: [[v, cur[a], T.p], [v, cur[b], T.s]],
       });
-      linePlot($("cut-d-top"), { ...dAxis, ...R2, ...pair(xd, fd, "Rp2", "Rs2", state.d) });
-      linePlot($("cut-d-bot"), { ...dAxis, ...PH, ...pair(xd, fd, "phaseP", "phaseS", state.d) });
+      linePlot($("cut-x-top"), { ...xAxis, ...R2, ...pair(xs, fs, "Rp2", "Rs2", xv) });
+      linePlot($("cut-x-bot"), { ...xAxis, ...PH, ...pair(xs, fs, "phaseP", "phaseS", xv) });
       linePlot($("cut-phi-top"), { ...pAxis, ...R2, ...pair(xp, fp, "Rp2", "Rs2", state.phi) });
       linePlot($("cut-phi-bot"), { ...pAxis, ...PH, ...pair(xp, fp, "phaseP", "phaseS", state.phi) });
     } else {
-      const one = (xs, fs, k, xv) => ({ series: [{ x: xs, y: fs.map(f => f[k]), color: T.accent }], marks: [[xv, cur[k], T.accent]] });
-      linePlot($("cut-d-top"), { ...dAxis, ...PS, ...one(xd, fd, "psi", state.d) });
-      linePlot($("cut-d-bot"), { ...dAxis, ...DL, ...one(xd, fd, "delta", state.d) });
+      const one = (xx, ff, k, v) => ({ series: [{ x: xx, y: ff.map(f => f[k]), color: T.accent }], marks: [[v, cur[k], T.accent]] });
+      linePlot($("cut-x-top"), { ...xAxis, ...PS, ...one(xs, fs, "psi", xv) });
+      linePlot($("cut-x-bot"), { ...xAxis, ...DL, ...one(xs, fs, "delta", xv) });
       linePlot($("cut-phi-top"), { ...pAxis, ...PS, ...one(xp, fp, "psi", state.phi) });
       linePlot($("cut-phi-bot"), { ...pAxis, ...DL, ...one(xp, fp, "delta", state.phi) });
     }
   }
 
-  // ---- trajectory over one film period ----
+  // ---- trajectory: one film period, or the full energy sweep ----
+  const E_TICKS = [2, 3, 4, 5, 6];
+  const eIndex = v => Math.round((v - E_MIN) * 100);   // point index on the 0.01 eV energy sweep
   function drawTraj() {
-    const cv = $("traj"), I = state.I, D = I.period, n = 480, pts = [];
-    for (let i = 0; i <= n; i++) pts.push(film(I, D * i / n));
+    const cv = $("traj"), I = state.I, pts = [];
+    if (state.axis === "d") for (let i = 0; i <= 480; i++) pts.push(film(I, I.period * i / 480));
+    else for (let i = 0; i <= 450; i++) pts.push(film(interfaces(state.phi, xAt(i, 450)), state.d));
     if (state.mode === "R") complexPlane(cv, pts); else psiDelta(cv, pts, I);
   }
 
@@ -580,6 +688,7 @@ const Phys = (() => {
     ctx.moveTo(fx(0), box.y); ctx.lineTo(fx(0), box.y + box.h); ctx.moveTo(box.x, fy(0)); ctx.lineTo(box.x + box.w, fy(0)); ctx.stroke();
     ctx.setLineDash([3, 4]); ctx.strokeStyle = T.muted;
     ctx.beginPath(); ctx.arc(fx(0), fy(0), box.w / 2 - 1, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+    const sweep = state.axis === "E", startLabel = sweep ? `${E_MIN} eV` : "d = 0";
     for (const [k, color] of [["Rp", T.p], ["Rs", T.s]]) {
       ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
       pts.forEach((f, i) => { const X = fx(f[k].re), Y = fy(f[k].im); if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); });
@@ -587,12 +696,16 @@ const Phys = (() => {
       const i = Math.round(pts.length * 0.12), a = pts[i][k], b = pts[i + 1][k];
       ctx.save(); ctx.translate(fx(b.re), fy(b.im)); ctx.rotate(Math.atan2(fy(b.im) - fy(a.im), fx(b.re) - fx(a.re)));
       ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, -5); ctx.lineTo(-5, 5); ctx.closePath(); ctx.fill(); ctx.restore();
+      if (sweep) for (const v of E_TICKS) {
+        const z = pts[eIndex(v)][k];
+        ctx.beginPath(); ctx.arc(fx(z.re), fy(z.im), 2.6, 0, 2 * Math.PI); ctx.fillStyle = color; ctx.fill();
+      }
       const z = pts[0][k], X0 = fx(z.re), Y0 = fy(z.im);
       dot(ctx, X0, Y0, 5, T.panel, color);
       const lx = X0 + (z.re >= 0 ? 10 : 8), ly = Y0 + (z.re >= 0 ? 0 : 15);
       ctx.font = `11px ${T.data}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-      ctx.lineWidth = 3; ctx.strokeStyle = T.panel; ctx.strokeText("d = 0", lx, ly);
-      ctx.fillStyle = T.muted; ctx.fillText("d = 0", lx, ly);
+      ctx.lineWidth = 3; ctx.strokeStyle = T.panel; ctx.strokeText(startLabel, lx, ly);
+      ctx.fillStyle = T.muted; ctx.fillText(startLabel, lx, ly);
       const c = state.cur[k];
       dot(ctx, fx(c.re), fy(c.im), 5.5, color, T.panel);
     }
@@ -614,49 +727,75 @@ const Phys = (() => {
     }
     ctx.stroke();
     ctx.font = `10.5px ${T.data}`; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
-    for (let t = 50; t < I.period - 10; t += 50) {
-      const f = film(I, t), X = fx(f.psi), Y = fy(f.delta);
+    const mark = (f, text) => {
+      const X = fx(f.psi), Y = fy(f.delta);
       ctx.beginPath(); ctx.arc(X, Y, 2.6, 0, 2 * Math.PI); ctx.fillStyle = T.ink; ctx.fill();
-      ctx.fillStyle = T.muted; ctx.fillText(String(t), X + 5, Y - 3);
-    }
+      ctx.fillStyle = T.muted; ctx.fillText(text, X + 5, Y - 3);
+    };
+    if (state.axis === "d") for (let t = 50; t < I.period - 10; t += 50) mark(film(I, t), String(t));
+    else for (const v of E_TICKS) mark(pts[eIndex(v)], v + " eV");
     const z = pts[0];
     dot(ctx, fx(z.psi), fy(z.delta), 5, T.panel, T.accent);
     ctx.fillStyle = T.muted; ctx.font = `11px ${T.data}`; ctx.textAlign = "left"; ctx.textBaseline = "top";
-    ctx.fillText("bare Si, d = 0", fx(z.psi) + 9, fy(z.delta) + 5);
+    ctx.fillText(state.axis === "d" ? "bare Si, d = 0" : `${E_MIN} eV`, fx(z.psi) + 9, fy(z.delta) + 5);
     dot(ctx, fx(state.cur.psi), fy(state.cur.delta), 5.5, T.accent, T.panel);
     ctx.restore();
   }
 
-  // ---- text that follows the mode ----
+  // ---- text that follows the mode and axis ----
+  const m = s => `<span class="m">${s}</span>`;
+  const DE = m("Δ<i>E</i> = <i>hc</i> / (2<i>dN</i><sub>2</sub> cos <i>φ</i><sub>2</sub>)");
+  const E12 = `${m("<i>E</i><sub>1</sub>")} ≈ 3.4 eV and ${m("<i>E</i><sub>2</sub>")} ≈ 4.3 eV`;
   const NOTES = {
-    R: {
-      maps: "Bands across each map are interference fringes. The film looks the same every <span class=\"m\"><i>D</i> = <i>λ</i> / (2<i>N</i><sub>2</sub> cos <i>φ</i><sub>2</sub>)</span>, so the fringes spread out toward grazing angles. At the air–SiO₂ Brewster angle (55.5°) <span class=\"m\"><i>r</i><sub>12</sub><sup>p</sup> = 0</span>, so <span class=\"m\"><i>R</i><sup>p</sup> = <i>r</i><sub>23</sub><sup>p</sup><i>e</i><sup>−<i>i</i>2<i>β</i></sup></span> and |<i>R</i><sup>p</sup>|² stops depending on <span class=\"m\"><i>d</i></span>: the p fringes vanish along that line.",
+    Rd: {
+      maps: v => `Bands across each map are interference fringes. The film looks the same every ${m("<i>D</i> = <i>λ</i> / (2<i>N</i><sub>2</sub> cos <i>φ</i><sub>2</sub>)")}, so the fringes spread out toward grazing angles. At the air–SiO₂ Brewster angle (${v.bf}°) ${m("<i>r</i><sub>12</sub><sup>p</sup> = 0")}, so ${m("<i>R</i><sup>p</sup> = <i>r</i><sub>23</sub><sup>p</sup><i>e</i><sup>−<i>i</i>2<i>β</i></sup>")} and |<i>R</i><sup>p</sup>|² stops depending on ${m("<i>d</i>")}: the p fringes vanish along that line.`,
       trajH: "Complex plane, one film period",
-      traj: "As <span class=\"m\"><i>d</i></span> grows, <span class=\"m\"><i>e</i><sup>−<i>i</i>2<i>β</i></sup></span> turns around the unit circle and each total reflection coefficient traces a circle of its own. The trace covers one film period <span class=\"m\"><i>D</i></span>; after that the reflection repeats exactly, because SiO₂ does not absorb. Hollow dots are bare silicon (<span class=\"m\"><i>d</i> = 0</span>), filled dots are the current thickness, and the arrows point the way the film grows. The dashed circle is |<i>R</i>| = 1.",
+      traj: () => `As ${m("<i>d</i>")} grows, ${m("<i>e</i><sup>−<i>i</i>2<i>β</i></sup>")} turns around the unit circle and each total reflection coefficient traces a circle of its own. The trace covers one film period ${m("<i>D</i>")}; after that the reflection repeats exactly, because SiO₂ does not absorb. Hollow dots are bare silicon (${m("<i>d</i> = 0")}), filled dots are the current thickness, and the arrows point the way the film grows. The dashed circle is |<i>R</i>| = 1.`,
     },
-    B: {
-      maps: "<span class=\"m\"><i>ψ</i></span> and Δ come from the ratio <span class=\"m\"><i>ρ</i> = <i>R</i><sup>p</sup>/<i>R</i><sup>s</sup> = tan <i>ψ</i> <i>e</i><sup><i>i</i>Δ</sup></span>, so they show the same fringes. Along the left edge (bare silicon, <span class=\"m\"><i>d</i> = 0</span>) Δ drops from 180° to 0° near the Si Brewster angle. A thin film shifts Δ most strongly near there, which is one reason measurements on silicon are usually made around 70°.",
+    Bd: {
+      maps: () => `${m("<i>ψ</i>")} and Δ come from the ratio ${m("<i>ρ</i> = <i>R</i><sup>p</sup>/<i>R</i><sup>s</sup> = tan <i>ψ</i> <i>e</i><sup><i>i</i>Δ</sup>")}, so they show the same fringes. Along the left edge (bare silicon, ${m("<i>d</i> = 0")}) Δ falls from 180° to 0° around the Si Brewster angle: sharply below about 3 eV, where Si barely absorbs, and more gradually above. A thin film shifts Δ most strongly near there, which is one reason measurements on silicon are usually made around 70°.`,
       trajH: "ψ–Δ trajectory, one film period",
-      traj: "As the oxide grows, the measured pair (<span class=\"m\"><i>ψ</i></span>, Δ) leaves the bare-silicon point and returns to it after one film period <span class=\"m\"><i>D</i></span>. Each point on the loop is a different thickness, which is how an ellipsometer reads <span class=\"m\"><i>d</i></span>, up to whole periods. Dots are labelled with thickness in nm; the filled dot is the current thickness.",
+      traj: () => `As the oxide grows, the measured pair (${m("<i>ψ</i>")}, Δ) leaves the bare-silicon point and returns to it after one film period ${m("<i>D</i>")}. Each point on the loop is a different thickness, which is how an ellipsometer reads ${m("<i>d</i>")}, up to whole periods. Dots are labelled with thickness in nm; the filled dot is the current thickness.`,
+    },
+    RE: {
+      maps: v => `Here the thickness is fixed and the photon energy changes, which changes two things. The film phase ${m("<i>β</i> = 2π<i>dN</i><sub>2</sub> cos <i>φ</i><sub>2</sub> · <i>E</i>/<i>hc</i>")} grows in proportion to ${m("<i>E</i>")}, so the fringes repeat every ${DE} (${v.dE} at the current point): a thicker film packs in more fringes. And silicon itself changes: above about 3 eV it absorbs strongly, and its interband features ${E12} show up in ${m("<i>r</i><sub>23</sub>")} and in |<i>R</i>|². Set ${m("<i>d</i> = 0")} to see bare silicon alone. The dashed curves are the SiO₂ Brewster angle and the Si pseudo-Brewster angle at each energy.`,
+      trajH: "Complex plane, 1.5–6 eV sweep",
+      traj: () => `With ${m("<i>d</i>")} fixed, sweeping the energy does two things at once: ${m("<i>e</i><sup>−<i>i</i>2<i>β</i></sup>")} turns as ${m("<i>β</i>")} grows with ${m("<i>E</i>")}, and ${m("<i>r</i><sub>12</sub>")} and ${m("<i>r</i><sub>23</sub>")} themselves move because ${m("<i>N</i><sub>2</sub>")} and ${m("<i>Ñ</i><sub>3</sub>")} depend on energy. So the path is no longer a circle. Hollow dots are 1.5 eV, small dots mark every whole eV up to 6 eV, filled dots are the current energy, and the arrows point toward higher energy. The dashed circle is |<i>R</i>| = 1.`,
+    },
+    BE: {
+      maps: v => `This is the view a spectroscopic ellipsometer gives: ${m("<i>ψ</i>")} and Δ against photon energy at a fixed angle, usually between 65° and 75°. The oxide adds fringes every ${DE} (${v.dE} at the current point); their spacing and shape are what a fit uses to find the thickness. Above about 3 eV the silicon interband features ${E12} appear, and the oxide fringes ride on top of them. The dashed curves are the SiO₂ Brewster angle and the Si pseudo-Brewster angle at each energy.`,
+      trajH: "ψ–Δ trajectory, 1.5–6 eV sweep",
+      traj: () => `The pair (${m("<i>ψ</i>")}, Δ) as the photon energy sweeps from 1.5 to 6 eV at the current thickness and angle. Dots are labelled in eV; the filled dot is the current energy. Set ${m("<i>d</i> = 0")} to see how much of the path comes from silicon alone.`,
     },
   };
 
+  function applyText() {
+    const N = NOTES[state.mode + state.axis], I = state.I;
+    const v = { bf: state.B.film.toFixed(1), dE: state.d > 0 ? fmtEv(state.E * I.period / state.d) : "infinite at d = 0" };
+    $("maps-note").innerHTML = N.maps(v);
+    $("traj-h").textContent = N.trajH;
+    $("traj-note").innerHTML = N.traj(v);
+    $("cuts-note").innerHTML = `Dashed lines in the angle plots mark the Brewster angle of SiO₂ and the pseudo-Brewster angle of Si (where bare Si reflects the least p light) at the current energy: ${state.B.film.toFixed(1)}° and ${state.B.substrate.toFixed(1)}°.` +
+      (state.axis === "E" ? ` In the energy plots they mark the Si interband features ${E12}.` : "") + " The grey vertical line is the current setting.";
+  }
+
   function applyMode() {
-    const R = state.mode === "R";
+    const R = state.mode === "R", D = state.axis === "d";
     $("mode-R").setAttribute("aria-pressed", String(R));
     $("mode-B").setAttribute("aria-pressed", String(!R));
+    $("axis-d").setAttribute("aria-pressed", String(D));
+    $("axis-E").setAttribute("aria-pressed", String(!D));
     const [a, b] = R ? ["Rp2", "Rs2"] : ["psi", "delta"];
     $("map-a-title").innerHTML = MAPS[a].title;
     $("map-b-title").innerHTML = MAPS[b].title;
+    $("maps-h").textContent = D ? "Over thickness and angle" : "Over photon energy and angle";
     $("legend").hidden = !R;
-    $("maps-note").innerHTML = NOTES[state.mode].maps;
-    $("traj-h").textContent = NOTES[state.mode].trajH;
-    $("traj-note").innerHTML = NOTES[state.mode].traj;
+    updateValues();
   }
 
   function updateValues() {
-    const I = interfaces(state.phi), f = film(I, state.d);
-    state.I = I; state.cur = f;
+    const I = interfaces(state.phi, state.E), f = film(I, state.d);
+    state.I = I; state.cur = f; state.B = brewster(state.E);
     $("v-r12p").textContent = sgn(I.r12p, 3);
     $("v-r12s").textContent = sgn(I.r12s, 3);
     $("v-r23p").textContent = fmtC(I.r23p);
@@ -673,11 +812,18 @@ const Phys = (() => {
     $("v-beta").textContent = fmtDeg(f.beta * 180 / Math.PI);
     $("v-D").textContent = I.period.toFixed(1) + " nm";
     $("v-dD").textContent = (state.d / I.period).toFixed(3);
-    $("cut-d-title").innerHTML = `Versus thickness <span class="tag">at φ = ${state.phi.toFixed(1)}°</span>`;
-    $("cut-phi-title").innerHTML = `Versus angle <span class="tag">at d = ${state.d.toFixed(1)} nm</span>`;
+    $("v-dE").textContent = state.d > 0 ? fmtEv(state.E * I.period / state.d) : "—";
+    $("materials").innerHTML = `${m("<i>λ</i>")} = ${I.lambda.toFixed(1)} nm · air ${m("<i>N</i><sub>1</sub>")} = 1<br>SiO₂ ${m("<i>N</i><sub>2</sub>")} = ${I.N2.toFixed(3)} · Si ${m("<i>Ñ</i><sub>3</sub>")} = ${I.N3.re.toFixed(3)} − ${(-I.N3.im).toFixed(3)}<i>i</i>`;
+    const at = `φ = ${state.phi.toFixed(1)}°`, atD = `d = ${state.d.toFixed(1)} nm`, atE = `E = ${state.E.toFixed(2)} eV`;
+    $("cut-x-title").innerHTML = state.axis === "d"
+      ? `Versus thickness <span class="tag">at ${at}, ${atE}</span>`
+      : `Versus photon energy <span class="tag">at ${at}, ${atD}</span>`;
+    $("cut-phi-title").innerHTML = `Versus angle <span class="tag">at ${atD}, ${atE}</span>`;
+    applyText();
   }
 
   function drawAll() {
+    ensureFields();
     const [a, b] = state.mode === "R" ? ["Rp2", "Rs2"] : ["psi", "delta"];
     drawMap($("map-a"), a);
     drawMap($("map-b"), b);
@@ -688,26 +834,33 @@ const Phys = (() => {
   const requestDraw = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; drawAll(); }); };
 
   // ---- inputs ----
-  function set(d, phi) {
-    state.d = clamp(d, 0, D_MAX);
-    state.phi = clamp(phi, 0, 89.9);
+  function set(o) {
+    if (o.d !== undefined) state.d = clamp(o.d, 0, D_MAX);
+    if (o.phi !== undefined) state.phi = clamp(o.phi, 0, 89.9);
+    if (o.E !== undefined) state.E = clamp(o.E, E_MIN, E_MAX);
     $("d").value = state.d; $("dNum").value = +state.d.toFixed(1);
     $("phi").value = state.phi; $("phiNum").value = +state.phi.toFixed(1);
+    $("E").value = state.E; $("ENum").value = +state.E.toFixed(3);
     updateValues();
     requestDraw();
   }
-  $("d").addEventListener("input", e => set(+e.target.value, state.phi));
-  $("phi").addEventListener("input", e => set(state.d, +e.target.value));
-  $("dNum").addEventListener("change", e => { const v = parseFloat(e.target.value); set(Number.isFinite(v) ? v : state.d, state.phi); });
-  $("phiNum").addEventListener("change", e => { const v = parseFloat(e.target.value); set(state.d, Number.isFinite(v) ? v : state.phi); });
-  for (const m of ["R", "B"]) $("mode-" + m).addEventListener("click", () => { state.mode = m; applyMode(); requestDraw(); });
+  const fromBox = (e, k) => { const v = parseFloat(e.target.value); set({ [k]: Number.isFinite(v) ? v : state[k] }); };
+  $("d").addEventListener("input", e => set({ d: +e.target.value }));
+  $("phi").addEventListener("input", e => set({ phi: +e.target.value }));
+  $("E").addEventListener("input", e => set({ E: +e.target.value }));
+  $("dNum").addEventListener("change", e => fromBox(e, "d"));
+  $("phiNum").addEventListener("change", e => fromBox(e, "phi"));
+  $("ENum").addEventListener("change", e => fromBox(e, "E"));
+  for (const k of ["R", "B"]) $("mode-" + k).addEventListener("click", () => { state.mode = k; applyMode(); requestDraw(); });
+  for (const k of ["d", "E"]) $("axis-" + k).addEventListener("click", () => { state.axis = k; applyMode(); requestDraw(); });
 
   function bindMap(cv) {
     let down = false;
     const pick = e => {
-      const b = cv._box, r = cv.getBoundingClientRect();
-      const x = e.clientX - r.left, y = e.clientY - r.top;
-      set(Math.round((x - b.x) / b.w * D_MAX * 2) / 2, Math.round((1 - (y - b.y) / b.h) * PHI_MAX * 10) / 10);
+      const b = cv._box, r = cv.getBoundingClientRect(), A = ax();
+      const x = A.snap(A.min + (e.clientX - r.left - b.x) / b.w * (A.max - A.min));
+      const phi = Math.round((1 - (e.clientY - r.top - b.y) / b.h) * PHI_MAX * 10) / 10;
+      set(state.axis === "d" ? { d: x, phi } : { E: x, phi });
     };
     cv.addEventListener("pointerdown", e => {
       const b = cv._box, r = cv.getBoundingClientRect();
@@ -733,8 +886,8 @@ const Phys = (() => {
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(retheme);
 
   readTheme();
+  set({});
   applyMode();
-  updateValues();
   drawAll();
 })();
 </script>
